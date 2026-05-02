@@ -2,6 +2,7 @@
  * Main Runner for Assignment Evaluation
  * Coordinates dataset generation and performance tracking.
  */
+import java.math.BigInteger;
 public class Main {
     public static void main(String[] args) {
         // 1. RANDOM STEP-BY-STEP DEMO (Rubric Requirement)
@@ -28,7 +29,7 @@ public class Main {
         System.out.println("n (digits)\tSimple_Ops\tKaratsuba_Ops");
 
         // Use these sizes for your Excel Graph
-        int[] sizes = {10, 50, 100, 200, 500, 1000, 2000};
+        int[] sizes = {10, 100, 500, 1000, 2000, 5000, 10000};
 
         for (int n : sizes) {
             // Generate identical random numbers for a fair comparison
@@ -40,18 +41,16 @@ public class Main {
             SimpleMultiplication.multiply(num1, num2, false);
             long simpleOps = SimpleMultiplication.opCount;
 
-            // Karatsuba result (to be updated by your partner)
-            long karaOps = 0;
-            /*
             Karatsuba.opCount = 0;
-            Karatsuba.mult(num1, num2);
-            karaOps = Karatsuba.opCount;
-            */
+            // Convert Strings to BigInteger
+            BigInteger b1 = new BigInteger(num1);
+            BigInteger b2 = new BigInteger(num2);
 
-            // Formatted for easy copy-paste to Excel
+            Karatsuba.mult(b1, b2);
+            long karaOps = Karatsuba.opCount;
+
+            // Formatted for easy copy-paste to Excel[cite: 1]
             System.out.println(n + "\t\t" + simpleOps + "\t\t" + karaOps);
         }
-
-        System.out.println("\nInstructions: Copy the table above into Excel to plot the graph.");
     }
 }
