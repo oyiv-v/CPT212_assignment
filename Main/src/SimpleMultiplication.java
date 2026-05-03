@@ -1,123 +1,129 @@
 import java.util.Random;
 
-/**
- * CPT212 Assignment 1: Part 1 - Simple Multiplication
- *
- * DESIGN FEATURES:
- * 1. Suitable Objects: Uses StringBuilder for O(1) character appending,
- *    essential for handling n=10,000 without memory overflow.
- * 2. Precision Counting: Tracks primitive operations including arithmetic,
- *    assignments, and loop overheads for accurate Big-O analysis.
- * 3. Robustness: Implements manual string-based addition to bypass
- *    the 64-bit limits of primitive 'long' types.
- */
 public class SimpleMultiplication {
 
-    // Global counter for primitive operations across the algorithm
     public static long opCount = 0;
 
-    /**
-     * Executes the digit-by-digit multiplication as specified.
-     * @param multiplicand The first large number string
-     * @param multiplier   The second large number string
-     * @param showSteps    Boolean to toggle console output for carriers/partials
-     * @return The final product as a String
-     */
     public static String multiply(String multiplicand, String multiplier, boolean showSteps) {
         int n = multiplicand.length();
         int m = multiplier.length();
-        // Array to store each shifted partial product row before final summation
         String[] shiftedRows = new String[m];
-        opCount += 3; // Assignment ops for n, m, and shiftedRows array
+        int[] multiplierDigits = new int[m];
+        opCount += 4;
 
-        // STEP 1: Multiply each digit of the multiplier with the full multiplicand
+        if (showSteps) {
+            System.out.println("[ALGORITHM EXECUTION WORKFLOW]");
+            // Widened the header padding to match the new summation layout
+            System.out.printf("%25s (A)\n", multiplicand);
+            System.out.printf("%25s (B)\n", "x " + multiplier);
+            System.out.println("------------------------------------------");
+        }
+
         for (int i = m - 1; i >= 0; i--) {
-            opCount++; // Count loop iteration overhead
+            opCount++;
             int d2 = multiplier.charAt(i) - '0';
+            multiplierDigits[m - 1 - i] = d2;
             int carry = 0;
             StringBuilder partialRow = new StringBuilder();
             StringBuilder carrierRow = new StringBuilder();
-            opCount += 4; // Assignments for d2, carry, and 2 StringBuilder objects
+            opCount += 5;
 
-            for (int j = n - 1; j >= 0; j--) {
-                opCount++; // Count inner loop iteration overhead
-                int d1 = multiplicand.charAt(j) - '0';
-
-                // Core math: Single-digit multiplication plus existing carry
-                int prod = (d1 * d2) + carry;
-                int partialDigit = prod % 10;
-                carry = prod / 10; // New carry for next digit
-
-                // Prepending digits (Requirement: Step 1 Partial & Carrier)
-                partialRow.insert(0, partialDigit);
-                carrierRow.insert(0, carry);
-                opCount += 6; // Mult, Add, Mod, Div, and 2 Insert operations
+            if (showSteps) {
+                System.out.printf("\nStep 1.%d: Multiplying (A) by Digit [%d] (Weight: 10^%d)\n",
+                        (m - i), d2, (m - 1 - i));
             }
 
-            // Handle any remaining carry at the end of the row multiplication
+            for (int j = n - 1; j >= 0; j--) {
+                opCount++;
+                int d1 = multiplicand.charAt(j) - '0';
+
+                int prod = (d1 * d2) + carry;
+                int partialDigit = prod % 10;
+                int oldCarry = carry;
+                carry = prod / 10;
+
+                if (showSteps) {
+                    System.out.printf("      (%d * %d) + Carry %d = %-2d | Partial: %d, New Carry: %d\n",
+                            d1, d2, oldCarry, prod, partialDigit, carry);
+                }
+
+                partialRow.insert(0, partialDigit);
+                carrierRow.insert(0, carry);
+                opCount += 6;
+            }
+
             if (carry > 0) {
                 partialRow.insert(0, carry);
                 opCount++;
             }
 
-            // Requirement 1a: Display steps for small-scale verification
-            if (showSteps) {
-                System.out.println("Multiplier Digit [" + d2 + "]:");
-                System.out.println("   Partial Product: " + partialRow);
-                System.out.println("   Carrier:         " + carrierRow);
-            }
-
-            // STEP 2: Apply shifting (multiplying by 10^s)
             StringBuilder shifted = new StringBuilder(partialRow);
-            for (int s = 0; s < (m - 1 - i); s++) {
-                shifted.append("0"); // Appending '0' is more efficient than math multiplication
-                opCount += 2; // Loop overhead and append op
+            int shiftPower = (m - 1 - i);
+            for (int s = 0; s < shiftPower; s++) {
+                shifted.append("0");
+                opCount += 2;
             }
-            shiftedRows[m - 1 - i] = shifted.toString();
+            shiftedRows[shiftPower] = shifted.toString();
             opCount++;
+
+            if (showSteps) {
+                System.out.printf("      ==> Row Carriers: %-12s | Row Partial: %s\n",
+                        carrierRow.toString(), partialRow.toString());
+            }
         }
 
-        // STEP 3: Summation of all properly shifted rows
         String totalResult = "0";
         opCount++;
         for (String row : shiftedRows) {
             totalResult = addLargeStrings(totalResult, row);
-            opCount++; // Loop summation overhead
+            opCount++;
+        }
+
+        if (showSteps) {
+            System.out.println("\n      -----------------------------------------------------------------------------------------");
+            System.out.println("FINAL SUMMATION (Accumulating Shifted Products):");
+            System.out.println("      -----------------------------------------------------------------------------------------");
+
+            for (int s = 0; s < shiftedRows.length; s++) {
+                String prefix = (s == 0) ? "  " : "+ ";
+                // Clean Label on the left
+                String rowLabel = String.format("Partial Row %d * 10^%d", (s + 1), s);
+
+                // %-30s: Label (Left Aligned)
+                // %2s:   Operator (+ or space)
+                // %50s:  Shifted Result (Right Aligned to create the 'wall' effect)
+                System.out.printf("      %-30s %2s %50s\n", rowLabel, prefix, shiftedRows[s]);
+            }
+
+            System.out.println("      -----------------------------------------------------------------------------------------");
+            System.out.printf("      %-30s %2s %50s \n", "FINAL RESULT:", " ", totalResult);
+            System.out.println("      -----------------------------------------------------------------------------------------");
         }
 
         return totalResult;
     }
 
-    /**
-     * Helper method to add two very large strings digit by digit.
-     * Necessary to handle numbers beyond the capacity of BigInteger or Long.
-     */
     private static String addLargeStrings(String s1, String s2) {
         StringBuilder result = new StringBuilder();
         int i = s1.length() - 1, j = s2.length() - 1, carry = 0;
-        opCount += 4; // Assignments for i, j, carry, and result StringBuilder
+        opCount += 4;
 
         while (i >= 0 || j >= 0 || carry > 0) {
-            opCount++; // While-loop condition evaluation
+            opCount++;
             int v1 = (i >= 0) ? s1.charAt(i--) - '0' : 0;
             int v2 = (j >= 0) ? s2.charAt(j--) - '0' : 0;
             int sum = v1 + v2 + carry;
             result.insert(0, sum % 10);
             carry = sum / 10;
-            opCount += 5; // 2 charAt lookups, sum calc, digit insert, carry update
+            opCount += 5;
         }
         return result.toString();
     }
 
-    /**
-     * Generates a random string of digits of length n.
-     * Ensures leading digit is non-zero to maintain exact length n.
-     */
     public static String generateRandom(int n) {
         Random rand = new Random();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < n; i++) {
-            // Logic to ensure the first digit is 1-9, rest are 0-9
             sb.append(i == 0 ? rand.nextInt(9) + 1 : rand.nextInt(10));
         }
         return sb.toString();
